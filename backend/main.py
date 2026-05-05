@@ -3,19 +3,12 @@ import asyncio
 import json
 import time
 import datetime
-import torch
 from typing import List, Dict
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, File, UploadFile
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
 import threading
-
-# Limit PyTorch to a single thread to save memory on Render's free tier
-torch.set_num_threads(1)
-# Global lock for inference to prevent concurrent memory spikes
-inference_lock = threading.Lock()
-
 import os
 import shutil
 from database import SessionLocal, TrafficHistory, engine
@@ -226,8 +219,7 @@ def video_worker(road_id: str):
         current_model = load_model()
         if frame_count % 5 == 0 and current_model is not None:
             try:
-                with inference_lock:
-                    results = current_model(frame, verbose=False, conf=0.3, imgsz=320)
+                results = current_model(frame, verbose=False, conf=0.3)
                 count = 0
                 car_count = 0
                 bike_count = 0
@@ -283,7 +275,7 @@ def video_worker(road_id: str):
 
         _, buffer = cv2.imencode('.jpg', frame)
         frame_buffer[road_id] = buffer.tobytes()
-        time.sleep(0.1)  # Increased from 0.03 to reduce CPU/Memory pressure
+        time.sleep(0.03)
 
 def uploaded_video_worker():
     """Special worker for uploaded video that stops when video ends or new upload arrives"""
@@ -317,8 +309,7 @@ def uploaded_video_worker():
                 current_model = load_model()
                 if frame_count % 5 == 0 and current_model is not None:
                     try:
-                        with inference_lock:
-                            results = current_model(frame, verbose=False, conf=0.3, imgsz=320)
+                        results = current_model(frame, verbose=False, conf=0.3)
                         count = 0
                         car_count = 0
                         bike_count = 0
@@ -363,7 +354,7 @@ def uploaded_video_worker():
 
                 _, buffer = cv2.imencode('.jpg', frame)
                 frame_buffer["uploaded"] = buffer.tobytes()
-                time.sleep(0.1)  # Increased from 0.03 to reduce CPU/Memory pressure
+                time.sleep(0.03)
             
             cap.release()
             if not upload_stop_signal.is_set() and traffic_data["uploaded"]["filename"]:
