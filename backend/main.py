@@ -33,6 +33,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Traffic AI Backend is Online",
+        "version": "5.0.0",
+        "endpoints": ["/health", "/traffic-data", "/history", "/ws"]
+    }
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    print(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    print(f"Response status: {response.status_code}")
+    return response
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,

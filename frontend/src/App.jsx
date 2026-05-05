@@ -39,6 +39,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080';
+console.log("Initializing Neural Link with:", API_BASE_URL);
+
 const WS_URL = import.meta.env.VITE_WS_URL || 
   (API_BASE_URL.startsWith('https') 
     ? API_BASE_URL.replace('https', 'wss') + '/ws'
@@ -146,8 +148,11 @@ const VideoUpload = ({ onUploadSuccess }) => {
       setFile(null);
       onUploadSuccess();
     } catch (error) {
-      console.error("Upload error:", error);
-      alert("Neural link failure. Please ensure the backend is active and try again.");
+      console.error("Upload error details:", error);
+      const errorMsg = error.response 
+        ? `Server Error: ${error.response.status}` 
+        : "Network Error: Cannot reach backend";
+      alert(`${errorMsg}. Please ensure the backend is active at ${API_BASE_URL} and try again.`);
     } finally {
       setUploading(false);
     }
@@ -213,6 +218,11 @@ function App() {
   const ws = useRef(null);
 
   useEffect(() => {
+    // Ping test
+    axios.get(`${API_BASE_URL}/health`)
+      .then(r => console.log("Neural Link Established:", r.data))
+      .catch(e => console.error("Neural Link Failed! Check API_BASE_URL:", API_BASE_URL, e));
+
     // Reset upload state on refresh
     axios.post(`${API_BASE_URL}/reset-upload`).catch(e => console.error(e));
 
