@@ -21,12 +21,15 @@ os.environ["YOLO_CONFIG_DIR"] = "/tmp"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Start background threads
+    print("Initializing background threads...")
     threading.Thread(target=process_traffic_logic, daemon=True).start()
     threading.Thread(target=save_traffic_history, daemon=True).start()
     
     for rid in ["road1", "road2", "road3"]:
+        print(f"Starting worker for {rid}")
         threading.Thread(target=video_worker, args=(rid,), daemon=True).start()
     threading.Thread(target=uploaded_video_worker, daemon=True).start()
+    print("Background threads initialized.")
     
     yield
     # Shutdown logic if needed (daemon threads will stop automatically)
@@ -38,7 +41,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
