@@ -13,8 +13,25 @@ import os
 import shutil
 from database import SessionLocal, TrafficHistory, engine
 from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+# Set YOLO config directory to /tmp for Render compatibility
+os.environ["YOLO_CONFIG_DIR"] = "/tmp"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start background threads
+    threading.Thread(target=process_traffic_logic, daemon=True).start()
+    threading.Thread(target=save_traffic_history, daemon=True).start()
+    
+    for rid in ["road1", "road2", "road3"]:
+        threading.Thread(target=video_worker, args=(rid,), daemon=True).start()
+    threading.Thread(target=uploaded_video_worker, daemon=True).start()
+    
+    yield
+    # Shutdown logic if needed (daemon threads will stop automatically)
+
+app = FastAPI(lifespan=lifespan)
 
 # Enable CORS
 app.add_middleware(
@@ -43,7 +60,9 @@ video_sources = {
 # Load YOLO model
 try:
     model_path = os.path.join(BASE_DIR, "yolov8n.pt")
+    print(f"Loading YOLO model from: {model_path}")
     model = YOLO(model_path)
+    print("YOLO model loaded successfully.")
 except Exception as e:
     print(f"Model load error: {e}")
     model = None
@@ -133,10 +152,6 @@ def process_traffic_logic():
                         traffic_data[r]["signal"] = "RED"
         
         time.sleep(1)
-
-# Start background threads
-threading.Thread(target=process_traffic_logic, daemon=True).start()
-threading.Thread(target=save_traffic_history, daemon=True).start()
 
 # Global Frame Buffer and Stop Signals
 frame_buffer = {
@@ -333,11 +348,6 @@ def uploaded_video_worker():
         
         time.sleep(0.5)
 
-# Start workers
-for rid in ["road1", "road2", "road3"]:
-    threading.Thread(target=video_worker, args=(rid,), daemon=True).start()
-threading.Thread(target=uploaded_video_worker, daemon=True).start()
-
 async def get_video_stream(road_id: str):
     """Async generator for streaming frames from buffer"""
     while True:
@@ -398,6 +408,10 @@ async def video_feed(road_id: str):
         return {"error": "Invalid road ID"}
     return StreamingResponse(get_video_stream(road_id), 
                              media_type="multipart/x-mixed-replace; boundary=frame")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.datetime.now().isoformat()}
 
 @app.get("/traffic-data")
 async def get_traffic_data():
