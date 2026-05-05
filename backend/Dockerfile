@@ -1,6 +1,13 @@
 # Use official Python image
 FROM python:3.10-slim
 
+# Install system dependencies required for OpenCV
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb1 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create a non-root user (Required for Hugging Face Spaces)
 RUN useradd -m -u 1000 user
 
