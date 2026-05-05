@@ -55,6 +55,21 @@ The dashboard will be available at `http://localhost:5173`.
 - **Database**: SQLite.
 - **Communication**: WebSockets, REST API.
 
-## 🔹 Deployment
-- **Backend**: Can be deployed using Docker or Gunicorn/Uvicorn on a Linux server.
-- **Frontend**: Can be built using `npm run build` and hosted on Vercel, Netlify, or Nginx.
+## 🚀 Deployment
+
+### 1. Backend (Render)
+- **Root Directory**: `backend`
+- **Build Command**: `pip install -r requirements.txt`
+- **Start Command**: `python main.py`
+- **Environment Variables**:
+  - `PORT`: `8080` (or leave default)
+
+### 2. Frontend (Vercel)
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variables**:
+  - `VITE_API_BASE_URL`: Your Render backend URL (e.g., `https://your-app.onrender.com`)
+  - `VITE_WS_URL`: Your Render WebSocket URL (e.g., `wss://your-app.onrender.com/ws`)
+
+## 🔹 Technologies Used

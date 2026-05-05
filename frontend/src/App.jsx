@@ -37,9 +37,9 @@ import {
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Hard-fix for local stability
-const API_BASE_URL = 'http://127.0.0.1:8080';
-const WS_URL = 'ws://127.0.0.1:8080/ws';
+// API configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8080/ws';
 
 // Premium Sidebar Item Component
 const SidebarItem = ({ icon: Icon, label, active, onClick, color = "blue" }) => {
