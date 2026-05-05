@@ -39,7 +39,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // API configuration
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8080';
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://127.0.0.1:8080/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 
+  (API_BASE_URL.startsWith('https') 
+    ? API_BASE_URL.replace('https', 'wss') + '/ws'
+    : API_BASE_URL.replace('http', 'ws') + '/ws');
 
 // Premium Sidebar Item Component
 const SidebarItem = ({ icon: Icon, label, active, onClick, color = "blue" }) => {
@@ -137,7 +140,6 @@ const VideoUpload = ({ onUploadSuccess }) => {
     formData.append('file', selectedFile);
 
     try {
-      // Add a small timeout or check if backend is ready
       await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -145,14 +147,7 @@ const VideoUpload = ({ onUploadSuccess }) => {
       onUploadSuccess();
     } catch (error) {
       console.error("Upload error:", error);
-      alert("System link failure. The neural link was interrupted. Retrying...");
-      // Optional: auto-retry once
-      try {
-        await axios.post(`${API_BASE_URL}/upload`, formData);
-        onUploadSuccess();
-      } catch (e) {
-        alert("Critical link failure. Please check if backend is running.");
-      }
+      alert("Neural link failure. Please ensure the backend is active and try again.");
     } finally {
       setUploading(false);
     }
