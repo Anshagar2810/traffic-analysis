@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-cyber-blue: #3b82f6;
+  --color-cyber-purple: #8b5cf6;
+  --color-cyber-rose: #f43f5e;
+  --color-cyber-emerald: #10b981;
+  --color-cyber-amber: #f59e0b;
+}
+
+@layer base {
+  body {
+    background-color: #02040a;
+    color: #f1f5f9;
+    font-family: var(--font-sans);
+    margin: 0;
+    overflow-x: hidden;
+  }
+}
+
+/* Glassmorphism Ultra */
+.glass-card {
+  background: rgba(13, 17, 23, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+}
+
+.glass-card-hover {
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.glass-card-hover:hover {
+  background: rgba(13, 17, 23, 0.9);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 50px rgba(59, 130, 246, 0.2);
+  transform: translateY(-5px);
+}
+
+/* Neon Text Effects */
+.text-glow-blue { text-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+.text-glow-rose { text-shadow: 0 0 20px rgba(244, 63, 94, 0.5); }
+.text-glow-emerald { text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+
+/* Animated Gradient Background */
+.bg-vibrant {
+  background: linear-gradient(-45deg, #02040a, #0d1117, #02040a, #0d1117);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #02040a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* Button Animations */
+.btn-premium {
+  @apply relative overflow-hidden transition-all duration-500 active:scale-95;
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300%;
+  height: 300%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.5s;
+}
+
+.btn-premium:hover::before {
+  transform: translate(-50%, -50%) scale(1);
+}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+opencv-python
+ultralytics
+sqlalchemy
+pydantic
+websockets
+python-multipart
+jinja2
