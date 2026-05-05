@@ -33,29 +33,22 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Traffic AI Backend is Online",
-        "version": "5.0.0",
-        "endpoints": ["/health", "/traffic-data", "/history", "/ws"]
-    }
-
-@app.middleware("http")
-async def log_requests(request, call_next):
-    print(f"Incoming request: {request.method} {request.url}")
-    response = await call_next(request)
-    print(f"Response status: {response.status_code}")
-    return response
-
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, # Changed to False to work with allow_origins=["*"]
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "message": "Traffic AI Backend is Active",
+        "timestamp": datetime.datetime.now().isoformat()
+    }
 
 # Base directory for absolute paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -72,15 +65,21 @@ video_sources = {
     "road3": os.path.join(BASE_DIR, "traffic3.mp4"),
 }
 
-# Load YOLO model
-try:
-    model_path = os.path.join(BASE_DIR, "yolov8n.pt")
-    print(f"Loading YOLO model from: {model_path}")
-    model = YOLO(model_path)
-    print("YOLO model loaded successfully.")
-except Exception as e:
-    print(f"Model load error: {e}")
-    model = None
+# Load YOLO model lazily
+model = None
+
+def load_model():
+    global model
+    if model is None:
+        try:
+            model_path = os.path.join(BASE_DIR, "yolov8n.pt")
+            print(f"Lazy loading YOLO model from: {model_path}")
+            model = YOLO(model_path)
+            print("YOLO model loaded successfully.")
+        except Exception as e:
+            print(f"Model load error: {e}")
+            model = None
+    return model
 
 # Traffic state
 traffic_data = {
@@ -214,9 +213,10 @@ def video_worker(road_id: str):
         frame = cv2.resize(frame, (640, 480))
         
         # Inference every 5 frames
-        if frame_count % 5 == 0 and model is not None:
+        current_model = load_model()
+        if frame_count % 5 == 0 and current_model is not None:
             try:
-                results = model(frame, verbose=False, conf=0.3)
+                results = current_model(frame, verbose=False, conf=0.3)
                 count = 0
                 car_count = 0
                 bike_count = 0
@@ -303,9 +303,10 @@ def uploaded_video_worker():
                 frame_count += 1
                 frame = cv2.resize(frame, (640, 480))
                 
-                if frame_count % 5 == 0 and model is not None:
+                current_model = load_model()
+                if frame_count % 5 == 0 and current_model is not None:
                     try:
-                        results = model(frame, verbose=False, conf=0.3)
+                        results = current_model(frame, verbose=False, conf=0.3)
                         count = 0
                         car_count = 0
                         bike_count = 0
