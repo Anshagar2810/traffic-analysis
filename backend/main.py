@@ -16,23 +16,34 @@ from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-# Create uploads directory
-UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False, # Changed to False to work with allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Base directory for absolute paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Create uploads directory
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+# Video sources with absolute paths
+video_sources = {
+    "road1": os.path.join(BASE_DIR, "traffic1.mp4"),
+    "road2": os.path.join(BASE_DIR, "traffic2.mp4"),
+    "road3": os.path.join(BASE_DIR, "traffic3.mp4"),
+}
+
 # Load YOLO model
 try:
-    model = YOLO("yolov8n.pt")  # Use direct name to allow auto-download if missing
+    model_path = os.path.join(BASE_DIR, "yolov8n.pt")
+    model = YOLO(model_path)
 except Exception as e:
     print(f"Model load error: {e}")
     model = None
@@ -43,13 +54,6 @@ traffic_data = {
     "road2": {"count": 0, "car": 0, "bike": 0, "truck": 0, "signal": "RED", "emergency": False},
     "road3": {"count": 0, "car": 0, "bike": 0, "truck": 0, "signal": "RED", "emergency": False},
     "uploaded": {"count": 0, "car": 0, "bike": 0, "truck": 0, "signal": "NONE", "emergency": False, "filename": None}
-}
-
-# Video sources
-video_sources = {
-    "road1": "traffic1.mp4",
-    "road2": "traffic2.mp4",
-    "road3": "traffic3.mp4",
 }
 
 # Dependency
@@ -154,7 +158,13 @@ def video_worker(road_id: str):
     global traffic_data, frame_buffer, last_detections
     
     source = video_sources.get(road_id)
+    print(f"Starting video worker for {road_id} using source: {source}")
+    
     if road_id == "uploaded":
+        return
+
+    if not os.path.exists(source):
+        print(f"CRITICAL ERROR: Video file not found at {source}")
         return
 
     cap = cv2.VideoCapture(source)
@@ -342,6 +352,7 @@ async def get_video_stream(road_id: str):
 @app.post("/upload")
 def upload_video(file: UploadFile = File(...)):
     global upload_stop_signal, traffic_data, frame_buffer, last_detections
+    print(f"Received upload request for file: {file.filename}")
     try:
         # 1. Signal stop and clear buffers
         upload_stop_signal.set()
@@ -354,7 +365,11 @@ def upload_video(file: UploadFile = File(...)):
         upload_stop_signal.clear()
         
         # 3. Save new file
+        if not os.path.exists(UPLOAD_DIR):
+            os.makedirs(UPLOAD_DIR)
+            
         file_path = os.path.join(UPLOAD_DIR, file.filename)
+        print(f"Saving file to: {file_path}")
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
